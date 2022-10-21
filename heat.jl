@@ -2,6 +2,7 @@
 using LinearAlgebra
 using ForwardDiff
 using DelimitedFiles
+using Statistics
 
 function heat_transfer_target()
     #=== Target ===#
@@ -187,10 +188,18 @@ function heat_transfer(permeability_factor)
     end
     # writedlm("u0.csv",  u0, ',')
     # println("Constant: ", convection_factor)
-    return norm(u - target)
+    return norm(u - target) / norm(target)
 end
 
-permeability_factor = 0.97
-df = ForwardDiff.derivative(heat_transfer, permeability_factor)
-println(df)
+# Newton Raphson iteration for solving the inverse problem.
+permeability_factor = 0.6
+for i = 1:50
+    df = ForwardDiff.derivative(heat_transfer, permeability_factor)
+    f = heat_transfer(permeability_factor)
+    println(i, " Permeability: ", permeability_factor, " df: ", df, " f: ", f)
+    if f < 1e-11
+        break
+    end
+    global permeability_factor = permeability_factor - f/df
+end
 println("Norm of heat transfer - target : ", heat_transfer(permeability_factor))
