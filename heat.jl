@@ -4,8 +4,10 @@ using ForwardDiff
 using DelimitedFiles
 using Statistics
 
-function heat_transfer_target()
-    #=== Target ===#
+target_permeability = 1e-12
+ntime_steps = 100000
+
+function conduction_convection(permeability = 1.0E-12, nsteps=10000)
     # box size, m
     w = h = 1
     # intervals in x-, y- directions, m
@@ -21,8 +23,7 @@ function heat_transfer_target()
 
     # Viscosity kg/m
     mu = 1.00E-03 
-    # Permeability m2
-    permeability_target = 1.0E-12
+    
     # Thermal expansion 
     beta = 8.80E-05
     # Cf
@@ -50,9 +51,6 @@ function heat_transfer_target()
     # Time step
     dt = 0.5 
 
-    # nsteps
-    nsteps = 10000
-
     # ========================================#
     #              Compute Target             #
     # ========================================#
@@ -67,15 +65,15 @@ function heat_transfer_target()
     end
 
     # Copy to u
-    target = deepcopy(t0)
-    convection_factor = convection * dt * (1/(n*mu)*permeability_target*g*rhow) / dy
+    temp = deepcopy(t0)
+    convection_factor = convection * dt * (1/(n*mu)*permeability*g*rhow) / dy
     # Iterate
     for k = 1:nsteps
         for i = 2:nx-1
             for j = 2:ny-1
                 # The velocity corresponds to differential density, since we are measuring the differnetial temp,
                 # the rho(1 - beta(T)) is written as rho*(beta*DeltaT) cable
-                target[i, j] = t0[i, j] +
+                temp[i, j] = t0[i, j] +
                     conduction * dt * alphaSoil * ((t0[i+1, j] - 2 * t0[i,j] + t0[i-1, j])/dy2 + 
                                             (t0[i, j+1] - 2 * t0[i,j] + t0[i, j-1])/dx2) + 
                     (t0[i-1,j] - t0[i,j]) * convection_factor * (1 - beta * t0[i,j])
@@ -85,16 +83,16 @@ function heat_transfer_target()
         for i = 97:103
             for j = 97:103
                 if ((i*dx-px)^2 + (j*dy-py)^2) <= pr2
-                    target[i,j] = Thot
+                    temp[i,j] = Thot
                 end
             end
         end
-        t0 = copy(target)
+        t0 = copy(temp)
     end
-    return target
+    return temp
 end
 
-target = heat_transfer_target()
+target = conduction_convection(target_permeability,100000)
 
 function heat_transfer(permeability_factor)
     # box size, m
@@ -142,7 +140,7 @@ function heat_transfer(permeability_factor)
     dt = 0.5 
 
     # nsteps
-    nsteps = 10000
+    nsteps = ntime_steps
 
     # ========================================#
     #         Compute Heat Transfer           #
@@ -162,7 +160,7 @@ function heat_transfer(permeability_factor)
     # Copy to u
     u = deepcopy(u0)
     
-    convection_factor = convection * dt * (1/(n*mu)*permeability_target*permeability_factor*g*rhow) / dy
+    convection_factor = convection * dt * (1/(n*mu) * permeability_target * permeability_factor * g * rhow) / dy
     # Iterate
     for k = 1:nsteps
         for i = 2:nx-1
@@ -186,20 +184,22 @@ function heat_transfer(permeability_factor)
 
         u0 = copy(u)
     end
-    # writedlm("u0.csv",  u0, ',')
-    # println("Constant: ", convection_factor)
     return norm(u - target) / norm(target)
 end
 
 # Newton Raphson iteration for solving the inverse problem.
-permeability_factor = 0.6
+permeability_factor = 0.0007
+tolerance = 1e-10
 for i = 1:50
     df = ForwardDiff.derivative(heat_transfer, permeability_factor)
     f = heat_transfer(permeability_factor)
-    println(i, " Permeability: ", permeability_factor, " df: ", df, " f: ", f)
-    if f < 1e-11
+    println(i, " Permeability: ", permeability_factor * 1e-12, " df: ", df, " f: ", f, " h: ", f/df)
+    if abs(f) < tolerance
         break
     end
     global permeability_factor = permeability_factor - f/df
 end
-println("Norm of heat transfer - target : ", heat_transfer(permeability_factor))
+
+temp = conduction_convection(permeability_factor*target_permeability, ntime_steps)
+writedlm("u0.csv",  temp, ',')
+println("Norm of heat: ", norm(temp))
