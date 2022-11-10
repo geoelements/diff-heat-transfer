@@ -197,6 +197,8 @@ tolerance = 1e-10
 soil_properties = zeros(2)
 soil_properties[1] = permeability_factor
 soil_properties[2] = 0.45
+
+# Iterate to update permeability
 for i = 1:50
     df = ForwardDiff.gradient(heat_transfer, soil_properties)[1]
     f = heat_transfer(soil_properties)
