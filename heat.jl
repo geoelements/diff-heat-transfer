@@ -67,6 +67,7 @@ function conduction_convection(permeability = 1.0E-12, nsteps=10000)
     # Copy to u
     temp = deepcopy(t0)
     convection_factor = convection * dt * (1/(n*mu)*permeability*g*rhow) / dy
+    println("convection factor ", convection_factor)
     # Iterate
     for k = 1:nsteps
         for i = 2:nx-1
@@ -94,7 +95,8 @@ end
 
 target = conduction_convection(target_permeability,100000)
 
-function heat_transfer(permeability_factor)
+function heat_transfer(soil_properties)
+    permeability_factor = soil_properties[1]
     # box size, m
     w = h = 1
     # intervals in x-, y- directions, m
@@ -106,7 +108,7 @@ function heat_transfer(permeability_factor)
     alphaSteel = 2.3e-5   # m^2/s
     alphaWater = 1.39e-7  # m^2/s
     # Porosity
-    n = 0.45
+    n = soil_properties[2] # 0.45
 
     # Viscosity kg/m
     mu = 1.00E-03 
@@ -188,16 +190,22 @@ function heat_transfer(permeability_factor)
 end
 
 # Newton Raphson iteration for solving the inverse problem.
-permeability_factor = 0.0007
+permeability_factor = 0.005
 tolerance = 1e-10
+
+# Initialize soil properties
+soil_properties = zeros(2)
+soil_properties[1] = permeability_factor
+soil_properties[2] = 0.45
 for i = 1:50
-    df = ForwardDiff.derivative(heat_transfer, permeability_factor)
-    f = heat_transfer(permeability_factor)
+    df = ForwardDiff.gradient(heat_transfer, soil_properties)[1]
+    f = heat_transfer(soil_properties)
     println(i, " Permeability: ", permeability_factor * 1e-12, " df: ", df, " f: ", f, " h: ", f/df)
     if abs(f) < tolerance
         break
     end
     global permeability_factor = permeability_factor - f/df
+    global soil_properties[1] = permeability_factor
 end
 
 temp = conduction_convection(permeability_factor*target_permeability, ntime_steps)
