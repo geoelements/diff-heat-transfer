@@ -93,7 +93,7 @@ function conduction_convection(permeability = 1.0E-12, nsteps=10000)
     return temp
 end
 
-target = conduction_convection(target_permeability,100000)
+target = conduction_convection(target_permeability,ntime_steps)
 
 function heat_transfer(soil_properties)
     permeability_factor = soil_properties[1]
