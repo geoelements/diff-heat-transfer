@@ -11,6 +11,7 @@ nt = 0.4
 d50 = 0.025*0.001 
 # target_permeability m2
 target_permeability = (1/180)*((nt^3)/((1-nt)^2))*(d50^2)
+println("Target permeability: ", target_permeability, " porosity: ", nt)
 
 function conduction_convection(permeability = 1e-13, nsteps=10000)
     # box size, m
@@ -85,7 +86,6 @@ function conduction_convection(permeability = 1e-13, nsteps=10000)
     # Copy to u
     temp = deepcopy(t0)
     convection_factor = convection * dt * (1/(nt*mu)*permeability*g*rhow) / dy
-    println("convection factor ", convection_factor)
     # Iterate
     for k = 1:nsteps
         for i = 2:nx-1
@@ -113,6 +113,7 @@ function conduction_convection(permeability = 1e-13, nsteps=10000)
 end
 
 target = conduction_convection(target_permeability,ntime_steps)
+println("Compute target completed")
 
 function heat_transfer(soil_properties)
     permeability_factor = soil_properties[1]
@@ -227,8 +228,9 @@ end
 
 # Newton Raphson iteration for solving the inverse problem.
 permeability_factor = 0.005
+permeability_tolerance = 1e-10
 porosity = 0.45
-tolerance = 1e-10
+porosity_tolerance = 1e-15
 
 # Initialize soil properties
 soil_properties = zeros(2)
@@ -240,7 +242,7 @@ for i = 1:50
     df = ForwardDiff.gradient(heat_transfer, soil_properties)[1]
     f = heat_transfer(soil_properties)
     println(i, " Permeability: ", permeability_factor * target_permeability, " df: ", df, " f: ", f, " h: ", f/df)
-    if abs(f) < tolerance
+    if abs(f) < permeability_tolerance
         break
     end
     global permeability_factor = permeability_factor - f/df
@@ -251,16 +253,13 @@ for i = 1:50
     for i =1:10
         fn = ((d50^2)/180) * ((porosity^3)/(1-porosity)^2) -k
         dfn = ((d50^2)/180)*(porosity^4 -4*porosity^3+3*porosity^2)/((1-porosity)^4)
-        println( i," fn: ", fn, "\tdfn: ", dfn, " \tporosity:", porosity)
-        if abs(fn) < 1e-15
+        println(i, " fn: ", fn, "\tdfn: ", dfn, " \tporosity:", porosity)
+        if abs(fn) < porosity_tolerance
            break
         end
         global porosity = porosity - fn/dfn
         global soil_properties[2] = porosity
     end
-
-end
-
 end
 
 temp = conduction_convection(permeability_factor*target_permeability, ntime_steps)
