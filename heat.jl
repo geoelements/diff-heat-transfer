@@ -28,14 +28,13 @@ function soil_props(n)
     #Thermal diffusivity
     alpha_water = lambda_water/(rhow * cp_water)
     alpha_soil = lambda_soil/(rhoS * cp_soil)
-    alpha = lambda/(rhoS * cp) 
 
     # particle size m
     d50 = 0.025*0.001 
     # permeability m2
     permeability = (1/180)*((n^3)/((1-n)^2))*(d50^2)
     
-    return alpha, permeability
+    return alpha_soil, permeability
 end
 
 function conduction_convection(permeability, alpha, nsteps)
