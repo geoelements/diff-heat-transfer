@@ -122,7 +122,7 @@ println("Target permeability: ", target_permeability, " porosity: ", n)
 target = conduction_convection(target_permeability, alpha, ntime_steps)
 println("Compute target completed, norm target temp: ", norm(target))
 
-function heat_transfer(permeability_factor, porosity, alpha)
+function heat_transfer(permeability_factor, porosity, alpha, target_permeability)
     # box size, m
     w = h = 1
     # intervals in x-, y- directions, m
@@ -210,13 +210,13 @@ alpha, permeability = soil_props(porosity)
 d50 = 0.025 * 0.001
 
 # Partial derivative of heat wrt permeability factor
-∂heat_∂permeability(permeability_factor, porosity, alpha) = 
-    ForwardDiff.derivative(permeability_factor -> heat_transfer(permeability_factor, porosity, alpha), permeability_factor)
+∂heat_∂permeability(permeability_factor, porosity, alpha, target_permeability) = 
+    ForwardDiff.derivative(permeability_factor -> heat_transfer(permeability_factor, porosity, alpha, target_permeability), permeability_factor)
 
 # Iterate to update permeability
 for i = 1:50
-    df = ∂heat_∂permeability(permeability_factor, porosity, alpha)
-    f = heat_transfer(permeability_factor, porosity, alpha)
+    df = ∂heat_∂permeability(permeability_factor, porosity, alpha, target_permeability)
+    f = heat_transfer(permeability_factor, porosity, alpha, target_permeability)
     println(i, " Permeability: ", permeability_factor * target_permeability, " df: ", df, " f: ", f, " h: ", f/df)
     if abs(f) < permeability_tolerance
         break
