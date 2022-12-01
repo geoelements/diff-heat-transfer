@@ -20,7 +20,7 @@ function soil_props(porosity)
     cp_water = 4290 
 
     # Thermal properties of the soil-water medium
-    lambda = lambda_soil * (1-n) + lambda_water * n #W/m-K
+    lambda = lambda_soil * (1 - n) + lambda_water * n #W/m-K
     cp = cp_soil * (1 - n) + cp_water * n #J/kg-K
 
     # Densities kg/m3
@@ -131,13 +131,14 @@ println("Compute target completed, norm target temp: ", norm(target_u))
 
 # Newton Raphson iteration for solving the inverse problem.
 permeability_factor = 0.005
-permeability_tolerance = 1e-10
 porosity = 0.45
+permeability_tolerance = 1e-10
 porosity_tolerance = 1e-15
 
 alpha, perm = soil_props(porosity)
 # particle size m
 d50 = 0.025 * 0.001
+println("Permeability: ", perm)
 
 permeability = permeability_factor * target_permeability
 
@@ -147,13 +148,14 @@ permeability = permeability_factor * target_permeability
 
 # Iterate to update permeability
 for i = 1:50
-    df = ∂heat_∂permeability(permeability, porosity, alpha, target_u)
     f = heat_transfer(permeability, porosity, alpha, target_u)
-    println(i, " Permeability: ", permeability, " df: ", df, " f: ", f, " h: ", f/df)
+    df = ∂heat_∂permeability(permeability, porosity, alpha, target_u)
+    h = f/df
+    println(i, " Permeability: ", permeability, " df: ", df, " f: ", f, " h: ", h)
     if abs(f) < permeability_tolerance
         break
     end
-    global permeability = permeability - f/df
+    global permeability = permeability - h
     
     # Iterate to update porosity
     k = permeability
