@@ -4,7 +4,7 @@ using ForwardDiff
 using DelimitedFiles
 using Statistics
 
-ntime_steps = 50000
+ntime_steps = 100000
 # target porosity
 n = 0.4
 
@@ -43,8 +43,6 @@ function conduction_convection(permeability, alpha, nsteps)
     w = h = 1
     # intervals in x-, y- directions, m
     dx = dy = 0.005
-    # Porosity
-    n = 0.45
     
     # Viscosity kg/m-s
     mu = 1.00E-03 
@@ -122,7 +120,7 @@ println("Target permeability: ", target_permeability, " porosity: ", n)
 target = conduction_convection(target_permeability, alpha, ntime_steps)
 println("Compute target completed, norm target temp: ", norm(target))
 
-function heat_transfer(permeability_factor, porosity, alpha, target_permeability)
+function heat_transfer(permeability, porosity, alpha)
     # box size, m
     w = h = 1
     # intervals in x-, y- directions, m
@@ -158,7 +156,7 @@ function heat_transfer(permeability_factor, porosity, alpha, target_permeability
     nsteps = ntime_steps
 
     # Compute heat flow based on permeability
-    u0 = Tcool * ones(nx, ny) * permeability_factor
+    u0 = Tcool * ones(nx, ny) * permeability
     
     # Initial conditions
     for i = 97:103
@@ -173,7 +171,7 @@ function heat_transfer(permeability_factor, porosity, alpha, target_permeability
     u = deepcopy(u0)
 
     convection_factor = convection * dt * 
-            (1 / (porosity * mu) * target_permeability * permeability_factor * g * rhow) / dy
+            (1 / (porosity * mu) * permeability * g * rhow) / dy
 
     # Iterate
     for k = 1:nsteps
@@ -196,7 +194,7 @@ function heat_transfer(permeability_factor, porosity, alpha, target_permeability
 
         u0 = copy(u)
     end
-    return norm(u - target) / norm(target)
+    return norm(u - target)/norm(target)
 end
 
 # Newton Raphson iteration for solving the inverse problem.
@@ -205,26 +203,28 @@ permeability_tolerance = 1e-10
 porosity = 0.45
 porosity_tolerance = 1e-15
 
-alpha, permeability = soil_props(porosity)
+alpha, perm = soil_props(porosity)
 # particle size m
 d50 = 0.025 * 0.001
 
+permeability = permeability_factor * target_permeability
+
 # Partial derivative of heat wrt permeability factor
-∂heat_∂permeability(permeability_factor, porosity, alpha, target_permeability) = 
-    ForwardDiff.derivative(permeability_factor -> heat_transfer(permeability_factor, porosity, alpha, target_permeability), permeability_factor)
+∂heat_∂permeability(permeability, porosity, alpha) = 
+    ForwardDiff.derivative(permeability -> heat_transfer(permeability, porosity, alpha), permeability)
 
 # Iterate to update permeability
 for i = 1:50
-    df = ∂heat_∂permeability(permeability_factor, porosity, alpha, target_permeability)
-    f = heat_transfer(permeability_factor, porosity, alpha, target_permeability)
-    println(i, " Permeability: ", permeability_factor * target_permeability, " df: ", df, " f: ", f, " h: ", f/df)
+    df = ∂heat_∂permeability(permeability, porosity, alpha)
+    f = heat_transfer(permeability, porosity, alpha)
+    println(i, " Permeability: ", permeability, " df: ", df, " f: ", f, " h: ", f/df)
     if abs(f) < permeability_tolerance
         break
     end
-    global permeability_factor = permeability_factor - f/df
+    global permeability = permeability - f/df
     
     # Iterate to update porosity
-    k = permeability_factor * target_permeability
+    k = permeability
     for i = 1:10
         fn = ((d50^2)/180) * ((porosity^3) / (1 - porosity)^2) - k
         dfn = ((d50^2)/180) * (porosity^4 - 4 * porosity^3 + 3 * porosity^2)/((1 - porosity)^4)
@@ -237,6 +237,6 @@ for i = 1:50
     end
 end
 
-temp = conduction_convection(permeability_factor*target_permeability, alpha, ntime_steps)
+temp = conduction_convection(permeability, alpha, ntime_steps)
 writedlm("u0.csv",  temp, ',')
 println("Norm of heat: ", norm(temp))
