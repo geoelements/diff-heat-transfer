@@ -5,9 +5,13 @@ using DelimitedFiles
 using Statistics
 
 # time steps
-ntime_steps = 10000
+ntime_steps = 50000
 # target porosity
 target_porosity = 0.4
+# Natural soil properties
+clay_alpha = 1.56868e-7
+clay_permeability = 
+clay_porosity = 0.6
 
 function soil_props(porosity)
     n = porosity
@@ -87,21 +91,22 @@ function conduction_convection(permeability, porosity, alpha)
         end
     end
 
-    alphas = ones(nx, ny) * 5e-7 * alpha / alpha
-    perm = ones(nx, ny) * 1e-15 * permeability / permeability
+    alphas = ones(nx, ny) * clay_alpha * (alpha / alpha)
+    perm = ones(nx, ny) * clay_permeability * (permeability / permeability)
+    poros= ones(nx, ny) * clay_porosity * (porosity / porosity)
     # Initial conditions
     for i = 50:150
         for j = 50:150
             alphas[i,j] = alpha
             perm[i,j] = permeability
+            poros[i,j] = porosity
         end
     end
 
     # Copy to u
     u = deepcopy(u0)
 
-    convection_factor = convection * dt * 
-            (1 / (porosity * mu) * g * rhow) / dy
+    convection_factor = convection * dt * ((1 / mu) * g * rhow) / dy
 
     # Iterate
     for k = 1:nsteps
@@ -110,7 +115,7 @@ function conduction_convection(permeability, porosity, alpha)
                 u[i, j] = u0[i, j] +
                     conduction * dt * alphas[i, j] * ((u0[i+1, j] - 2 * u0[i,j] + u0[i-1, j])/dy2 + 
                                                (u0[i, j+1] - 2 * u0[i,j] + u0[i, j-1])/dx2) + 
-                    (u0[i-1,j] - u0[i,j]) * convection_factor * perm[i, j] * (1 - beta * u0[i,j])
+                    (u0[i-1,j] - u0[i,j]) * convection_factor * perm[i, j] * (1 - beta * u0[i,j]) / poros[i,j]
             end
         end
         # Initial conditions
