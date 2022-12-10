@@ -5,7 +5,7 @@ using DelimitedFiles
 using Statistics
 
 # time steps
-ntime_steps = 100000
+ntime_steps = 10000
 # target porosity
 target_porosity = 0.4
 
@@ -76,7 +76,7 @@ function conduction_convection(permeability, porosity, alpha)
     nsteps = ntime_steps
 
     # Compute heat flow based on permeability
-    u0 = zeros(nx, ny) * permeability
+    u0 = zeros(nx, ny) * permeability / permeability
     
     # Initial conditions
     for i = 97:103
@@ -87,20 +87,30 @@ function conduction_convection(permeability, porosity, alpha)
         end
     end
 
+    alphas = ones(nx, ny) * 5e-7 * alpha / alpha
+    perm = ones(nx, ny) * 1e-15 * permeability / permeability
+    # Initial conditions
+    for i = 50:150
+        for j = 50:150
+            alphas[i,j] = alpha
+            perm[i,j] = permeability
+        end
+    end
+
     # Copy to u
     u = deepcopy(u0)
 
     convection_factor = convection * dt * 
-            (1 / (porosity * mu) * permeability * g * rhow) / dy
+            (1 / (porosity * mu) * g * rhow) / dy
 
     # Iterate
     for k = 1:nsteps
         for i = 2:nx-1
             for j = 2:ny-1
                 u[i, j] = u0[i, j] +
-                    conduction * dt * alpha * ((u0[i+1, j] - 2 * u0[i,j] + u0[i-1, j])/dy2 + 
+                    conduction * dt * alphas[i, j] * ((u0[i+1, j] - 2 * u0[i,j] + u0[i-1, j])/dy2 + 
                                                (u0[i, j+1] - 2 * u0[i,j] + u0[i, j-1])/dx2) + 
-                    (u0[i-1,j] - u0[i,j]) * convection_factor * (1 - beta * u0[i,j])
+                    (u0[i-1,j] - u0[i,j]) * convection_factor * perm[i, j] * (1 - beta * u0[i,j])
             end
         end
         # Initial conditions
@@ -171,6 +181,6 @@ for i = 1:50
     end
 end
 
-temp = heat_transfer(permeability, porosity, alpha, uzeros)
+temp = conduction_convection(permeability, porosity, alpha, uzeros)
 writedlm("u0.csv",  temp, ',')
 println("Norm of heat: ", norm(temp))
