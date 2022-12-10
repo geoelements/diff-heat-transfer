@@ -83,14 +83,6 @@ function conduction_convection(permeability, porosity, alpha)
     u0 = zeros(nx, ny) * permeability / permeability
     
     # Initial conditions
-    for i = 97:103
-        for j = 97:103
-            if ((i*dx-px)^2 + (j*dy-py)^2) <= pr2
-                u0[i,j] = Thot
-            end
-        end
-    end
-
     alphas = ones(nx, ny) * clay_alpha * (alpha / alpha)
     perm = ones(nx, ny) * clay_permeability * (permeability / permeability)
     poros= ones(nx, ny) * clay_porosity * (porosity / porosity)
@@ -100,6 +92,10 @@ function conduction_convection(permeability, porosity, alpha)
             alphas[i,j] = alpha
             perm[i,j] = permeability
             poros[i,j] = porosity
+            # Cable
+            if ((i*dx-px)^2 + (j*dy-py)^2) <= pr2
+                u0[i,j] = Thot
+            end
         end
     end
 
