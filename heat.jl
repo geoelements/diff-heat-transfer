@@ -5,13 +5,13 @@ using DelimitedFiles
 using Statistics
 
 # time steps
-ntime_steps = 50000
+ntime_steps = 10000
 # target porosity
 target_porosity = 0.4
 # Natural soil properties
-clay_alpha = 1.56868e-7
-clay_permeability = 
-clay_porosity = 0.6
+const clay_alpha = 1.56868e-7
+const clay_permeability = 1e-16
+const clay_porosity = 0.6 
 
 function soil_props(porosity)
     n = porosity
