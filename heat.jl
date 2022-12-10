@@ -142,7 +142,7 @@ println("Compute target completed, norm target temp: ", norm(target_u))
 # Newton Raphson iteration for solving the inverse problem.
 permeability_factor = 0.005
 porosity = 0.45
-permeability_tolerance = 1e-10
+permeability_tolerance = 1e-3
 porosity_tolerance = 1e-15
 
 alpha, perm = soil_props(porosity)
@@ -181,6 +181,6 @@ for i = 1:50
     end
 end
 
-temp = conduction_convection(permeability, porosity, alpha, uzeros)
+temp = conduction_convection(permeability, porosity, alpha)
 writedlm("u0.csv",  temp, ',')
 println("Norm of heat: ", norm(temp))
