@@ -140,8 +140,6 @@ uzeros = jnp.zeros((200, 200))
 target_u = conduction_convection(target_permeability, target_porosity, target_alpha)
 print("Compute target completed, norm target temp: ", jnp.linalg.norm(target_u))
 
-"""
-
 # Newton Raphson iteration for solving the inverse problem.
 permeability_factor = 0.005
 porosity = 0.45
@@ -190,10 +188,10 @@ print("Permeability: {}, porosity: {}".format(permeability, porosity))
 
 temperature = conduction_convection(permeability, porosity, alpha)
 temperature = np.array(temperature)
-"""
 
-np.savetxt('u0.csv', target_u, delimiter=',')
-print("Norm of heat: ", np.linalg.norm(target_u))
+
+np.savetxt('u0.csv', temperature, delimiter=',')
+print("Norm of heat: ", np.linalg.norm(temperature))
 
 # Plot
 cmap = plt.cm.get_cmap("jet")

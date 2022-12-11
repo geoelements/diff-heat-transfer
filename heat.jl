@@ -5,7 +5,7 @@ using DelimitedFiles
 using Statistics
 
 # time steps
-ntime_steps = 10000
+ntime_steps = 50000
 # target porosity
 target_porosity = 0.4
 # Natural soil properties
@@ -66,7 +66,9 @@ function conduction_convection(permeability, porosity, alpha)
     Tcool, Thot = 0, 30
 
     # pipe geometry
-    pr, px, py = 0.0125, 0.5, 0.5
+    px1, py1 = 0.5, 0.475
+    px2, py2 = 0.5, 0.525
+    pr = 0.0125
     pr2 = pr^2
 
     # Calculations
@@ -93,7 +95,11 @@ function conduction_convection(permeability, porosity, alpha)
             perm[i,j] = permeability
             poros[i,j] = porosity
             # Cable
-            if ((i*dx-px)^2 + (j*dy-py)^2) <= pr2
+            if ((i*dx-px1)^2 + (j*dy-py1)^2) <= pr2
+                u0[i,j] = Thot
+            end
+            # Cable 2
+            if ((i*dx-px2)^2 + (j*dy-py2)^2) <= pr2
                 u0[i,j] = Thot
             end
         end
@@ -112,16 +118,18 @@ function conduction_convection(permeability, porosity, alpha)
                     conduction * dt * alphas[i, j] * ((u0[i+1, j] - 2 * u0[i,j] + u0[i-1, j])/dy2 + 
                                                (u0[i, j+1] - 2 * u0[i,j] + u0[i, j-1])/dx2) + 
                     (u0[i-1,j] - u0[i,j]) * convection_factor * perm[i, j] * (1 - beta * u0[i,j]) / poros[i,j]
-            end
-        end
-        # Initial conditions
-        for i = 97:103
-            for j = 97:103
-                if ((i*dx-px)^2 + (j*dy-py)^2) <= pr2
-                    u[i,j] = Thot
+
+                # Cable 1
+                if ((i*dx-px1)^2 + (j*dy-py1)^2) <= pr2
+                    u0[i,j] = Thot
                 end
+                # Cable 2
+                if ((i*dx-px2)^2 + (j*dy-py2)^2) <= pr2
+                    u0[i,j] = Thot
+                end    
             end
         end
+
 
         u0 = copy(u)
     end
