@@ -5,7 +5,7 @@ using DelimitedFiles
 using Statistics
 
 # time steps
-ntime_steps = 50000
+ntime_steps = 100000
 # target porosity
 target_porosity = 0.4
 # Natural soil properties
